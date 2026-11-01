@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sandwich – Fresh Sandwiches</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@1,600;1,700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=5">
+</head>
+<body data-page="item">
+<header class="hero inner">
+  <a href="index.html"><img src="images/logo-dark.png" alt="Fresh Sandwiches – home"></a>
+</header>
+<main>
+  <a class="back" href="index.html" aria-label="Back to menu">&larr;</a>
+  <div id="missing" hidden>
+    <h1 class="page-title">Sandwich not found</h1>
+    <p class="lead">That sandwich isn’t on the menu right now. <a href="index.html" style="color:#fff;font-weight:700">Back to the menu</a></p>
+  </div>
+
+  <div id="sandwich">
+    <h1 class="page-title" id="s-name"></h1>
+    <p class="lead" id="s-desc"></p>
+
+    <details class="info" open>
+      <summary>What&rsquo;s in it?</summary>
+      <ul id="s-ingredients"></ul>
+      <p id="s-contains-row"><strong>Contains:</strong> <span id="s-contains"></span></p>
+    </details>
+
+    <section class="card">
+      <label for="bread">Bread</label>
+      <select id="bread"></select>
+
+      <label for="note">Want it a little different?</label>
+      <textarea id="note"></textarea>
+
+      <div class="addrow">
+        <div class="qty"><button type="button" id="minus" aria-label="Fewer">&minus;</button><output id="qty">1</output><button type="button" id="plus" aria-label="More">+</button></div>
+        <button type="button" class="btn add" id="add">Add to order</button>
+      </div>
+
+      <div class="added" id="added">
+        <p>Added to your order ✓</p>
+        <a class="btn alt" href="index.html">Add another sandwich</a>
+        <a class="btn go" href="order.html">View my order</a>
+      </div>
+    </section>
+  </div>
+
+  <div id="info"></div>
+</main>
+<footer class="site-foot" id="foot"></footer>
+<a class="bar" id="bar" href="order.html">View my order (<span id="count">0</span>)</a>
+<script src="js/menu.js?v=5"></script>
+<script src="js/app.js?v=5"></script>
+</body>
+</html>

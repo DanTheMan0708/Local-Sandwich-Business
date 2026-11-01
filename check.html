@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Website check</title>
+<link rel="stylesheet" href="css/style.css?v=5">
+<style>
+.res{list-style:none;margin:0;padding:0}
+.res li{display:flex;gap:10px;padding:10px 0;border-bottom:2px dashed var(--line)}
+.res li:last-child{border-bottom:0}
+.res .i{flex:none;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff}
+.ok .i{background:var(--green)} .bad .i{background:var(--red)} .warn .i{background:#f28a30;color:#1f2a44}
+.res small{display:block;color:var(--muted)}
+#summary{font-weight:700;margin:0 0 10px}
+</style>
+</head>
+<body>
+<header class="hero inner"><a href="index.html"><img src="images/logo-dark.png" alt="Fresh Sandwiches"></a></header>
+<main>
+  <h1 class="page-title">Website check</h1>
+  <p class="lead">This page checks that all your website files are in the right place. It is just for you.</p>
+  <section class="card">
+    <p id="summary">Checking…</p>
+    <ul class="res" id="res"></ul>
+  </section>
+</main>
+<script>
+(function () {
+  var list = document.getElementById("res"), bad = 0, warn = 0;
+  function add(kind, text, hint) {
+    if (kind === "bad") bad++; if (kind === "warn") warn++;
+    var li = document.createElement("li"); li.className = kind;
+    var i = document.createElement("span"); i.className = "i"; i.textContent = kind === "ok" ? "✓" : (kind === "bad" ? "✕" : "!");
+    var d = document.createElement("div"); d.appendChild(document.createTextNode(text));
+    if (hint) { var s = document.createElement("small"); s.textContent = hint; d.appendChild(s); }
+    li.appendChild(i); li.appendChild(d); list.appendChild(li);
+  }
+  function get(path) {
+    return fetch(path + (path.indexOf("?") < 0 ? "?t=" : "&t=") + Date.now(), { cache: "no-store" }).then(function (r) {
+      return r.ok ? r.text() : null;
+    }).catch(function () { return null; });
+  }
+  var need = ["index.html", "sandwich.html", "order.html", "css/style.css", "js/menu.js", "js/app.js", "images/logo-dark.png"];
+  var old = ["sandwiches/chicken-mayo.html", "sandwiches/rocket-ham-cheese.html", "chicken-mayo.html", "rocket-ham-cheese.html", "style.css", "app.js", "logo-dark.png"];
+  var texts = {};
+
+  Promise.all(need.map(function (f) { return get(f).then(function (t) { texts[f] = t; }); })).then(function () {
+    need.forEach(function (f) {
+      if (texts[f] === null) add("bad", "Missing file: " + f, "Upload " + f + " to your GitHub repository, in exactly this folder.");
+      else add("ok", "Found " + f);
+    });
+    // are the files the new versions?
+    if (texts["index.html"] && texts["index.html"].indexOf('id="tagline"') < 0) add("bad", "index.html is an OLD version", "Upload the new index.html from the latest zip.");
+    if (texts["sandwich.html"] && texts["sandwich.html"].indexOf('id="s-name"') < 0) add("bad", "sandwich.html is an OLD version", "Upload the new sandwich.html from the latest zip.");
+    if (texts["js/app.js"] && texts["js/app.js"].indexOf("sandwich.html?id=") < 0) add("bad", "js/app.js is an OLD version", "Upload the new js/app.js from the latest zip.");
+    if (texts["order.html"] && texts["order.html"].indexOf('id="foot"') < 0) add("warn", "order.html looks like an old version", "Upload the new order.html from the latest zip.");
+
+    return Promise.all(old.map(function (f) { return get(f).then(function (t) { return [f, t]; }); }));
+  }).then(function (results) {
+    results.forEach(function (r) {
+      if (r[1] !== null) add("warn", "Old file still on your site: " + r[0], "Delete it from GitHub (open the file, click the bin icon, commit). Old files can break the ordering.");
+    });
+    if (!results.some(function (r) { return r[1] !== null; })) add("ok", "No old leftover files found");
+
+    // menu.js contents
+    return new Promise(function (resolve) {
+      if (typeof window.SETTINGS !== "undefined") return resolve();
+      var sc = document.createElement("script"); sc.src = "js/menu.js?t=" + Date.now(); sc.onload = resolve; sc.onerror = resolve;
+      document.head.appendChild(sc);
+    });
+  }).then(function () {
+    if (typeof SETTINGS === "undefined" || typeof MENU === "undefined") {
+      add("bad", "js/menu.js has a mistake or did not load", "Usually a missing comma, quote mark or bracket. Compare it with the original from the zip, or paste it into Claude and ask what is wrong.");
+      return;
+    }
+    add("ok", "js/menu.js loaded fine");
+    var ids = {}, available = 0;
+    MENU.forEach(function (m, n) {
+      var label = "Sandwich " + (n + 1) + (m.name ? " (" + m.name + ")" : "");
+      if (!m.id || !/^[a-z0-9-]+$/.test(m.id)) add("bad", label + ": the id must be lowercase letters, numbers and hyphens only", "Example: chicken-mayo");
+      else if (ids[m.id]) add("bad", label + ": the id \"" + m.id + "\" is used twice", "Every sandwich needs its own id.");
+      ids[m.id] = true;
+      if (!m.name) add("bad", label + ": missing name");
+      if (!m.description) add("warn", label + ": missing description");
+      if (!m.ingredients || !m.ingredients.length) add("warn", label + ": no ingredients listed");
+      if (m.available !== false) available++;
+    });
+    if (available) add("ok", available + " sandwich" + (available === 1 ? "" : "es") + " showing on the menu");
+    else add("bad", "No sandwiches are showing on the menu", "Set available: true on at least one sandwich.");
+    if (!SETTINGS.breads || !SETTINGS.breads.length) add("bad", "No bread choices set", "Add some to breads in js/menu.js.");
+    if (!SETTINGS.times || !SETTINGS.times.length) add("bad", "No delivery times set", "Add some to times in js/menu.js.");
+    if (!/^27\d{9}$/.test(SETTINGS.whatsapp || "")) add("warn", "Check your WhatsApp number: " + SETTINGS.whatsapp, "It should look like 27713875231 (no + , spaces or leading 0).");
+    else add("ok", "WhatsApp number looks right (" + SETTINGS.whatsapp + ")");
+    add(SETTINGS.formKey ? "ok" : "warn", SETTINGS.formKey ? "Automatic order emails are ON" : "Automatic order emails are off", SETTINGS.formKey ? "" : "Optional. Add a Web3Forms key in js/menu.js if you want them.");
+    add(SETTINGS.buildYourOwn && SETTINGS.buildYourOwn.show ? "ok" : "warn", SETTINGS.buildYourOwn && SETTINGS.buildYourOwn.show ? "Build your own is showing" : "Build your own is switched off", "Change show in js/menu.js to turn it on or off.");
+  }).then(function () {
+    document.getElementById("summary").textContent = bad ? "✕ " + bad + " problem" + (bad === 1 ? "" : "s") + " found. Fix the red items below, then reload this page."
+      : (warn ? "✓ No errors. A few things to look at (orange) below." : "✓ Everything looks good.");
+  });
+})();
+</script>
+</body>
+</html>
